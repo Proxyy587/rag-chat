@@ -9,18 +9,40 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@datastax/astra-db-ts": "^1.5.0",
+    "@google/generative-ai": "^0.21.0",
+    "@hookform/resolvers": "^3.9.1",
+    "@langchain/community": "^0.3.15",
+    "@langchain/core": "^0.3.18",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-popover": "^1.1.2",
+    "@radix-ui/react-slot": "^1.1.0",
+    "ai": "^3.4.33",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.17",
+    "langchain": "^0.3.6",
+    "lucide-react": "^0.460.0",
+    "next": "14.2.3",
+    "next-themes": "^0.4.3",
+    "openai": "^4.72.0",
+    "puppeteer": "^23.8.0",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.3"
+    "react-hook-form": "^7.53.2",
+    "sonner": "^1.7.0",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.3"
+    "typescript": "^5"
   }
 }
