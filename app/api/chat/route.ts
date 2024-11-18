@@ -2,21 +2,42 @@ import { DataAPIClient } from "@datastax/astra-db-ts";
 import OpenAI from "openai";
 import { OpenAIStream, StreamingTextResponse } from "ai";
 
-// Initialize OpenAI client
+const requiredEnvVars = [
+	"OPENAI",
+	"ASTRA_DB_API_TOKEN",
+	"ASTRA_DB_API_ENDPOINT",
+	"ASTRA_DB_DATABASE_NAMESPACE",
+	"ASTRA_DB_DATABASE_COLLECTION",
+];
+
+for (const envVar of requiredEnvVars) {
+	if (!process.env[envVar]) {
+		throw new Error(`Missing required environment variable: ${envVar}`);
+	}
+}
+
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI,
 });
 
-// Initialize Astra DB client
-const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN || "");
-const db = client.db(process.env.ASTRA_DB_API_ENDPOINT || "", {
+const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN!);
+const db = client.db(process.env.ASTRA_DB_API_ENDPOINT!, {
 	namespace: process.env.ASTRA_DB_DATABASE_NAMESPACE,
 });
 
 export async function POST(req: Request) {
 	try {
 		const { messages } = await req.json();
+
+		if (!messages || !Array.isArray(messages) || messages.length === 0) {
+			return new Response("Invalid messages format", { status: 400 });
+		}
+
 		const latestMessage = messages[messages.length - 1].content as string;
+
+		if (!latestMessage) {
+			return new Response("Empty message content", { status: 400 });
+		}
 
 		const embedding = await openai.embeddings.create({
 			model: "text-embedding-3-small",
@@ -28,7 +49,7 @@ export async function POST(req: Request) {
 
 		try {
 			const collection = await db.collection(
-				process.env.ASTRA_DB_DATABASE_COLLECTION || ""
+				process.env.ASTRA_DB_DATABASE_COLLECTION!
 			);
 			const results = await collection.find(null, {
 				sort: {
@@ -43,6 +64,7 @@ export async function POST(req: Request) {
 			console.log(context);
 		} catch (error) {
 			console.error("Error fetching data from Astra DB:", error);
+			return new Response("Error accessing knowledge base", { status: 500 });
 		}
 
 		const systemMessage: OpenAI.Chat.ChatCompletionMessageParam = {
