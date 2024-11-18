@@ -2,12 +2,14 @@ import { DataAPIClient } from "@datastax/astra-db-ts";
 import OpenAI from "openai";
 import { OpenAIStream, StreamingTextResponse } from "ai";
 
+// Initialize OpenAI client
 const openai = new OpenAI({
 	apiKey: process.env.OPENAI,
 });
 
-const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN);
-const db = client.db(process.env.ASTRA_DB_API_ENDPOINT!, {
+// Initialize Astra DB client
+const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN || "");
+const db = client.db(process.env.ASTRA_DB_API_ENDPOINT || "", {
 	namespace: process.env.ASTRA_DB_DATABASE_NAMESPACE,
 });
 
@@ -17,7 +19,7 @@ export async function POST(req: Request) {
 		const latestMessage = messages[messages.length - 1].content as string;
 
 		const embedding = await openai.embeddings.create({
-			model: "text-embedding-3-small", 
+			model: "text-embedding-3-small",
 			input: latestMessage,
 			encoding_format: "float",
 		});
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
 
 		try {
 			const collection = await db.collection(
-				process.env.ASTRA_DB_DATABASE_COLLECTION!
+				process.env.ASTRA_DB_DATABASE_COLLECTION || ""
 			);
 			const results = await collection.find(null, {
 				sort: {
