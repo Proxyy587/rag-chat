@@ -7,16 +7,18 @@ import {
 	PuppeteerWebBaseLoader,
 } from "@langchain/community/document_loaders/web/puppeteer";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
 type similarity = "cosine" | "dot_product" | "euclidean";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const embedModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const openai = new OpenAI({
+	apiKey: process.env.GEMINI_API_KEY,
+	baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+});
 
-const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN!);
+const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN);
 const db = client.db(process.env.ASTRA_DB_API_ENDPOINT!, {
-	namespace: process.env.ASTRA_DB_DATABASE_NAMESPACE!,
+	namespace: process.env.ASTRA_DB_DATABASE_NAMESPACE,
 });
 
 const splitter = new RecursiveCharacterTextSplitter({
@@ -24,7 +26,9 @@ const splitter = new RecursiveCharacterTextSplitter({
 	chunkOverlap: 128,
 });
 
-const createCollection = async (similarity: similarity = "dot_product") => {
+export const createCollection = async (
+	similarity: similarity = "dot_product"
+) => {
 	try {
 		const res = await db.createCollection(
 			process.env.ASTRA_DB_DATABASE_COLLECTION!,
@@ -35,7 +39,7 @@ const createCollection = async (similarity: similarity = "dot_product") => {
 				},
 			}
 		);
-		console.log("Collection created:", res);
+		console.log(res);
 		return res;
 	} catch (error) {
 		console.error("Error creating collection:", error);
@@ -43,22 +47,16 @@ const createCollection = async (similarity: similarity = "dot_product") => {
 	}
 };
 
-const validateOrCreateCollection = async () => {
-	try {
-		const collection = await db.collection(
-			process.env.ASTRA_DB_DATABASE_COLLECTION!
-		);
-		await collection.find(null, { limit: 1 }).toArray();
-		console.log("Collection validated.");
-	} catch (error) {
-		console.log("Collection does not exist; creating...");
-		await createCollection();
-	}
-};
-
 export const loadData = async (urls: string[]) => {
 	try {
-		await validateOrCreateCollection();
+		try {
+			const collection = await db.collection(
+				process.env.ASTRA_DB_DATABASE_COLLECTION!
+			);
+			await collection.find(null, { limit: 1 }).toArray();
+		} catch (error) {
+			await createCollection();
+		}
 
 		const collection = await db.collection(
 			process.env.ASTRA_DB_DATABASE_COLLECTION!
@@ -70,12 +68,13 @@ export const loadData = async (urls: string[]) => {
 			const chunks = await splitter.splitText(textContent);
 
 			for (const chunk of chunks) {
-				const embeddingResponse = await embedModel.embedContent(chunk);
-				const vector = embeddingResponse.embedding.values;
+				const embedding = await openai.embeddings.create({
+					input: chunk,
+					model: "text-embedding-004",
+					encoding_format: "float",
+				});
 
-				if (vector.length !== 768) {
-					throw new Error("Invalid embedding dimension from Gemini");
-				}
+				const vector = embedding.data[0].embedding;
 
 				const res = await collection.insertOne({
 					$vector: vector,
@@ -87,7 +86,6 @@ export const loadData = async (urls: string[]) => {
 				console.log("Inserted chunk:", res);
 			}
 		}
-
 		return { success: true, message: "Data loaded successfully" };
 	} catch (error) {
 		console.error("Error loading data:", error);
@@ -113,7 +111,6 @@ export const scrapeWebsite = async (url: string) => {
 				return result;
 			},
 		});
-
 		const docs = await loader.load();
 		return docs.map((doc) => doc.pageContent.replace(/<[^>]*>?/g, ""));
 	} catch (error) {
