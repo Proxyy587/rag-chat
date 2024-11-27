@@ -11,13 +11,28 @@ import OpenAI from "openai";
 
 type similarity = "cosine" | "dot_product" | "euclidean";
 
+// Check required environment variables
+const requiredEnvVars = [
+	"GEMINI_API_KEY",
+	"ASTRA_DB_API_TOKEN", 
+	"ASTRA_DB_API_ENDPOINT",
+	"ASTRA_DB_DATABASE_NAMESPACE",
+	"ASTRA_DB_DATABASE_COLLECTION"
+];
+
+for (const envVar of requiredEnvVars) {
+	if (!process.env[envVar]) {
+		throw new Error(`Missing required environment variable: ${envVar}`);
+	}
+}
+
 const openai = new OpenAI({
 	apiKey: process.env.GEMINI_API_KEY,
 	baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
 });
 
 const client = new DataAPIClient(process.env.ASTRA_DB_API_TOKEN);
-const db = client.db(process.env.ASTRA_DB_API_ENDPOINT!, {
+const db = client.db(process.env.ASTRA_DB_API_ENDPOINT, {
 	namespace: process.env.ASTRA_DB_DATABASE_NAMESPACE,
 });
 
@@ -31,7 +46,7 @@ export const createCollection = async (
 ) => {
 	try {
 		const res = await db.createCollection(
-			process.env.ASTRA_DB_DATABASE_COLLECTION!,
+			process.env.ASTRA_DB_DATABASE_COLLECTION,
 			{
 				vector: {
 					dimension: 768,
@@ -48,21 +63,27 @@ export const createCollection = async (
 };
 
 export const loadData = async (urls: string[]) => {
+	if (!urls || urls.length === 0) {
+		throw new Error("No URLs provided");
+	}
+
 	try {
+		let collection;
 		try {
-			const collection = await db.collection(
-				process.env.ASTRA_DB_DATABASE_COLLECTION!
+			collection = await db.collection(
+				process.env.ASTRA_DB_DATABASE_COLLECTION
 			);
 			await collection.find(null, { limit: 1 }).toArray();
 		} catch (error) {
 			await createCollection();
+			collection = await db.collection(
+				process.env.ASTRA_DB_DATABASE_COLLECTION
+			);
 		}
 
-		const collection = await db.collection(
-			process.env.ASTRA_DB_DATABASE_COLLECTION!
-		);
-
 		for (const url of urls) {
+			if (!url) continue;
+
 			const content = await scrapeWebsite(url);
 			const textContent = content.join(" ");
 			const chunks = await splitter.splitText(textContent);
@@ -94,6 +115,10 @@ export const loadData = async (urls: string[]) => {
 };
 
 export const scrapeWebsite = async (url: string) => {
+	if (!url) {
+		throw new Error("No URL provided");
+	}
+
 	try {
 		const loader = new PuppeteerWebBaseLoader(url, {
 			launchOptions: {
