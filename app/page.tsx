@@ -49,7 +49,11 @@ export default function Home() {
 									Welcome to RAG:chatme
 								</h2>
 								<p className="text-sm text-zinc-600 dark:text-zinc-400">
-									Add knowledge and start asking questions
+									Im broke so i used Gemini Api key so it will give slow
+									response give me money at paypal.me/yosuprky so that i upgrade
+									to better llm model but u can start talking tho it uses vector
+									database start talking now click on top right + icon to add
+									knowledge btw
 								</p>
 							</motion.div>
 						</div>
