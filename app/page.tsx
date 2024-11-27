@@ -11,7 +11,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
 	const { messages, input, handleInputChange, handleSubmit, isLoading } =
-		useChat();
+		useChat({
+			api: "/api/chat",
+			onError: (error) => {
+				console.error("Chat error:", error);
+			},
+		});
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -41,7 +46,7 @@ export default function Home() {
 								className="text-center"
 							>
 								<h2 className="text-xl font-medium mb-2">
-									Welcome to Proxy AI
+									Welcome to RAG:chatme
 								</h2>
 								<p className="text-sm text-zinc-600 dark:text-zinc-400">
 									Add knowledge and start asking questions

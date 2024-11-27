@@ -20,9 +20,6 @@ export const metadata: Metadata = {
 		"Artificial Intelligence",
 		"Chatbot",
 	],
-	authors: [{ name: "RAG AI Chat Team" }],
-	viewport: "width=device-width, initial-scale=1",
-	robots: "index, follow",
 	openGraph: {
 		title: "RAG AI Chat | Your Intelligent Knowledge Assistant",
 		description:
